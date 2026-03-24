@@ -166,4 +166,25 @@ try {
     console.warn('Warning: could not copy images:', e.message);
 }
 
+// --- Generate icons CSS from individual PNGs (replaces Grunt sprite task) ---
+const iconCategories = ['tools', 'transform', 'settings', 'frame', 'common', 'minimap'];
+let iconsCss = '/* Auto-generated icon CSS */\n\n';
+for (const cat of iconCategories) {
+    const catDir = join(piskelSrc, 'img/icons', cat);
+    let files;
+    try { files = readdirSync(catDir); } catch { continue; }
+    for (const file of files.sort()) {
+        if (!file.endsWith('.png') || file.includes('@2x')) continue;
+        const name = file.replace('.png', '');
+        iconsCss += `.icon-${name} {\n`;
+        iconsCss += `  background-image: url('/piskel/img/icons/${cat}/${file}');\n`;
+        iconsCss += `  background-repeat: no-repeat;\n`;
+        iconsCss += `  background-position: center;\n`;
+        iconsCss += `  background-size: 36px 36px;\n`;
+        iconsCss += `}\n\n`;
+    }
+}
+writeFileSync(join(outDir, 'icons.css'), iconsCss);
+console.log('Icons CSS: generated -> public/piskel/icons.css');
+
 console.log('Done!');

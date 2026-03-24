@@ -56,6 +56,7 @@ async function ensurePiskelLoaded(): Promise<void> {
 
     // Load CSS
     loadStylesheet('/piskel/piskel.css');
+    loadStylesheet('/piskel/icons.css');
 
     // Load the bundled Piskel JS
     await loadScript('/piskel/piskel.js');
