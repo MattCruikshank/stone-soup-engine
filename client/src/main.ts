@@ -1,6 +1,7 @@
+import { Assets, Texture } from 'pixi.js';
 import { createApp } from './render/renderer';
-import { createTilemap } from './render/tilemap';
-import { updateEntityGraphics } from './render/entities';
+import { createFallbackTilemap, createSpriteTilemap } from './render/tilemap';
+import { updateEntityGraphics, setPlayerTexture } from './render/entities';
 import { connect } from './net/connection';
 import {
     MSG_WELCOME,
@@ -13,14 +14,51 @@ import {
 import { ClientWorld } from './game/world';
 import { setupInput } from './input/input';
 
+const ASSET_BASE = '/assets';
+
+async function loadGameConfig(): Promise<{ background?: string; player?: string }> {
+    try {
+        const res = await fetch(`${ASSET_BASE}/resources/default.json`);
+        if (res.ok) return res.json();
+    } catch {
+        // Config not available, use defaults
+    }
+    return {};
+}
+
 async function main() {
     const app = await createApp();
 
-    // Add tilemap background
-    const tilemap = createTilemap();
-    app.stage.addChild(tilemap);
+    // Load game config
+    const config = await loadGameConfig();
+    console.log('Game config:', config);
 
-    // Connect to server — use port 5000 directly (game server)
+    // Load background
+    if (config.background) {
+        try {
+            const bgTexture = await Assets.load(`${ASSET_BASE}/sprites/${config.background}`);
+            const tilemap = createSpriteTilemap(bgTexture);
+            app.stage.addChild(tilemap);
+        } catch (e) {
+            console.warn('Failed to load background sprite, using fallback:', e);
+            app.stage.addChild(createFallbackTilemap());
+        }
+    } else {
+        app.stage.addChild(createFallbackTilemap());
+    }
+
+    // Load player sprite
+    if (config.player) {
+        try {
+            const playerTex = await Assets.load(`${ASSET_BASE}/sprites/${config.player}`);
+            setPlayerTexture(playerTex);
+            console.log('Player sprite loaded:', config.player);
+        } catch (e) {
+            console.warn('Failed to load player sprite, using fallback:', e);
+        }
+    }
+
+    // Connect to server
     const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsHost = window.location.hostname;
     const wsPort = 5000;
@@ -50,16 +88,14 @@ async function main() {
         }
     });
 
-    // Setup click-to-move input (needs stage ref for screen->world conversion)
     setupInput(app.canvas as HTMLCanvasElement, ws, app.stage);
 
-    // Render loop
     app.ticker.add((ticker) => {
         const dt = ticker.deltaMS / 1000;
         world.interpolate(dt);
         updateEntityGraphics(app.stage, world);
 
-        // Camera follow: center stage on local player
+        // Camera follow
         const local = world.entities.get(world.localPlayerId);
         if (local) {
             app.stage.x = app.screen.width / 2 - local.renderX;

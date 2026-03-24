@@ -99,32 +99,49 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
         return () => clearInterval(interval);
     }, [loadTree]);
 
+    const getEditorPosition = useCallback(() => {
+        if (!dockviewApi) return undefined;
+        const existingEditor = dockviewApi.panels.find(p => p.id !== 'file-tree');
+        return existingEditor
+            ? { referencePanel: existingEditor }
+            : { referencePanel: 'file-tree', direction: 'right' as const };
+    }, [dockviewApi]);
+
+    const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.gif'];
+    const TEXT_EXTS = ['.json', '.lua', '.js', '.txt', '.md', '.csv', '.xml', '.yaml', '.yml'];
+
     const handleFileClick = useCallback((node: FileNode) => {
         if (!dockviewApi) return;
 
-        const isPng = node.name.toLowerCase().endsWith('.png');
-        if (isPng) {
-            const panelId = `sprite-${node.path}`;
-            const existing = dockviewApi.getPanel(panelId);
-            if (existing) {
-                existing.api.setActive();
-                return;
-            }
-            // Find an existing editor panel to group with, otherwise open to the right of file tree
-            const allPanels = dockviewApi.panels;
-            const existingEditor = allPanels.find(p => p.id !== 'file-tree');
-            const position = existingEditor
-                ? { referencePanel: existingEditor }
-                : { referencePanel: 'file-tree', direction: 'right' as const };
+        const lower = node.name.toLowerCase();
+        const panelId = `file-${node.path}`;
+        const existing = dockviewApi.getPanel(panelId);
+        if (existing) {
+            existing.api.setActive();
+            return;
+        }
+
+        const isImage = IMAGE_EXTS.some(ext => lower.endsWith(ext));
+        const isText = TEXT_EXTS.some(ext => lower.endsWith(ext));
+
+        if (isImage) {
             dockviewApi.addPanel({
                 id: panelId,
                 component: 'sprite-editor',
                 title: node.name,
                 params: { filePath: node.path },
-                position,
+                position: getEditorPosition(),
+            });
+        } else if (isText) {
+            dockviewApi.addPanel({
+                id: panelId,
+                component: 'text-editor',
+                title: node.name,
+                params: { filePath: node.path },
+                position: getEditorPosition(),
             });
         }
-    }, [dockviewApi]);
+    }, [dockviewApi, getEditorPosition]);
 
     const handleNewSprite = useCallback(() => {
         const name = prompt('Sprite name (e.g. goblin):');
@@ -144,11 +161,6 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
         if (!dockviewApi) return;
 
         const panelId = `sprite-new-${name}-${Date.now()}`;
-        const allPanels = dockviewApi.panels;
-        const existingEditor = allPanels.find(p => p.id !== 'file-tree');
-        const position = existingEditor
-            ? { referencePanel: existingEditor }
-            : { referencePanel: 'file-tree', direction: 'right' as const };
         dockviewApi.addPanel({
             id: panelId,
             component: 'sprite-editor',
@@ -159,9 +171,26 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                 width,
                 height,
             },
-            position,
+            position: getEditorPosition(),
         });
-    }, [dockviewApi]);
+    }, [dockviewApi, getEditorPosition]);
+
+    const handleNewJson = useCallback(() => {
+        const name = prompt('File name (e.g. monsters.json):');
+        if (!name) return;
+        const fileName = name.endsWith('.json') ? name : `${name}.json`;
+
+        if (!dockviewApi) return;
+
+        const panelId = `text-new-${fileName}-${Date.now()}`;
+        dockviewApi.addPanel({
+            id: panelId,
+            component: 'text-editor',
+            title: fileName,
+            params: { filePath: null, fileName },
+            position: getEditorPosition(),
+        });
+    }, [dockviewApi, getEditorPosition]);
 
     return (
         <div style={{
@@ -191,6 +220,22 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                     }}
                 >
                     New Sprite
+                </button>
+                <button
+                    onClick={handleNewJson}
+                    style={{
+                        flex: 1,
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        background: '#a6e3a1',
+                        color: '#1e1e2e',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                    }}
+                >
+                    New JSON
                 </button>
             </div>
             <div style={{ flex: 1, overflow: 'auto', padding: '4px 0' }}>

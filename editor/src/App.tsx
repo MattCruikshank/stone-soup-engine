@@ -7,10 +7,12 @@ import {
 import 'dockview/dist/styles/dockview.css';
 import { FileTreePanel } from './panels/FileTreePanel';
 import { SpriteEditorPanel } from './panels/SpriteEditorPanel';
+import { TextEditorPanel } from './panels/TextEditorPanel';
 
 const components: Record<string, React.FC<IDockviewPanelProps>> = {
     'file-tree': FileTreePanel,
     'sprite-editor': SpriteEditorPanel,
+    'text-editor': TextEditorPanel,
 };
 
 export const App: React.FC = () => {

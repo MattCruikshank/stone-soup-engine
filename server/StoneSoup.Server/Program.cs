@@ -44,11 +44,17 @@ var app = builder.Build();
 app.UseCors();
 app.UseWebSockets();
 
-// Serve custom-assets/ at /assets/
+// Serve custom-assets/ at /assets/ with no caching
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(assetRoot),
-    RequestPath = "/assets"
+    RequestPath = "/assets",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        ctx.Context.Response.Headers["Pragma"] = "no-cache";
+        ctx.Context.Response.Headers["Expires"] = "0";
+    }
 });
 
 app.Map("/ws", async (HttpContext context, SessionManager sessionManager, ConcurrentQueue<(string, byte[], int)> queue) =>
