@@ -2,6 +2,12 @@
 body { overflow: hidden; background: #1e1e2e; color: #cdd6f4; font-family: system-ui, sans-serif; }
 #root { width: 100vw; height: 100vh; }
 
+/* File tree group: no close button */
+.file-tree-group .dv-default-tab-action {
+    display: none !important;
+}
+
+
 /* Override Piskel layout to work inside a dockview panel instead of full-page.
    transform: translateZ(0) creates a new containing block, so position:fixed
    children are trapped inside instead of escaping to the viewport. */

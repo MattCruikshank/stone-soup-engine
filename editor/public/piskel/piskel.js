@@ -23508,11 +23508,13 @@ return Q;
   };
 
   ns.DrawingController.prototype.getAvailableHeight_ = function () {
-    return document.querySelector('#main-wrapper').getBoundingClientRect().height;
+    var el = document.querySelector('#main-wrapper');
+    return el ? el.getBoundingClientRect().height : 0;
   };
 
   ns.DrawingController.prototype.getSelectorWidth_ = function (selector) {
-    return document.querySelector(selector).getBoundingClientRect().width;
+    var el = document.querySelector(selector);
+    return el ? el.getBoundingClientRect().width : 0;
   };
 
   ns.DrawingController.prototype.getAvailableWidth_ = function () {

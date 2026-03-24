@@ -9,7 +9,7 @@ interface TreeNodeProps {
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, onFileClick }) => {
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
     const isDir = node.type === 'directory';
 
     const handleClick = () => {
@@ -95,6 +95,8 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
 
     useEffect(() => {
         loadTree();
+        const interval = setInterval(loadTree, 3000);
+        return () => clearInterval(interval);
     }, [loadTree]);
 
     const handleFileClick = useCallback((node: FileNode) => {
@@ -108,11 +110,18 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                 existing.api.setActive();
                 return;
             }
+            // Find an existing editor panel to group with, otherwise open to the right of file tree
+            const allPanels = dockviewApi.panels;
+            const existingEditor = allPanels.find(p => p.id !== 'file-tree');
+            const position = existingEditor
+                ? { referencePanel: existingEditor }
+                : { referencePanel: 'file-tree', direction: 'right' as const };
             dockviewApi.addPanel({
                 id: panelId,
                 component: 'sprite-editor',
                 title: node.name,
                 params: { filePath: node.path },
+                position,
             });
         }
     }, [dockviewApi]);
@@ -135,6 +144,11 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
         if (!dockviewApi) return;
 
         const panelId = `sprite-new-${name}-${Date.now()}`;
+        const allPanels = dockviewApi.panels;
+        const existingEditor = allPanels.find(p => p.id !== 'file-tree');
+        const position = existingEditor
+            ? { referencePanel: existingEditor }
+            : { referencePanel: 'file-tree', direction: 'right' as const };
         dockviewApi.addPanel({
             id: panelId,
             component: 'sprite-editor',
@@ -145,6 +159,7 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                 width,
                 height,
             },
+            position,
         });
     }, [dockviewApi]);
 
@@ -176,21 +191,6 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                     }}
                 >
                     New Sprite
-                </button>
-                <button
-                    onClick={loadTree}
-                    style={{
-                        padding: '4px 8px',
-                        fontSize: '12px',
-                        background: '#313244',
-                        color: '#cdd6f4',
-                        border: '1px solid #45475a',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                    }}
-                    title="Refresh"
-                >
-                    &#x21bb;
                 </button>
             </div>
             <div style={{ flex: 1, overflow: 'auto', padding: '4px 0' }}>

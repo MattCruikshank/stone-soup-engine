@@ -120,6 +120,33 @@ export const PiskelEditor: React.FC<PiskelEditorProps> = ({
                     window.pskl.app.init();
                     console.log('[PiskelEditor] pskl.app.init() complete');
 
+                    // Load existing image if provided
+                    if (initialImageUrl) {
+                        console.log('[PiskelEditor] Loading image:', initialImageUrl);
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            const w = img.width || width;
+                            const h = img.height || height;
+                            window.pskl.app.importService.newPiskelFromImage(img, {
+                                importType: 'single',
+                                name: 'sprite',
+                                smoothing: false,
+                                frameSizeX: w,
+                                frameSizeY: h,
+                                frameOffsetX: 0,
+                                frameOffsetY: 0,
+                            }, (piskel: any) => {
+                                window.pskl.app.piskelController.setPiskel(piskel, {});
+                                console.log('[PiskelEditor] Image loaded into editor');
+                            });
+                        };
+                        img.onerror = () => {
+                            console.warn('[PiskelEditor] Failed to load image:', initialImageUrl);
+                        };
+                        img.src = initialImageUrl;
+                    }
+
                     // Trigger resize so Piskel recalculates layout for the panel size
                     setTimeout(() => {
                         window.dispatchEvent(new Event('resize'));
