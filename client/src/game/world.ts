@@ -9,6 +9,7 @@ export interface ClientEntity {
     renderX: number;
     renderY: number;
     templateId: string;
+    displayName: string;
 }
 
 const TICK_INTERVAL = 1 / 20; // 50ms
@@ -31,6 +32,7 @@ export class ClientWorld {
                 existing.x = e.x;
                 existing.y = e.y;
                 existing.templateId = e.templateId;
+                existing.displayName = e.displayName;
             } else {
                 this.entities.set(e.entityId, {
                     entityId: e.entityId,
@@ -41,6 +43,7 @@ export class ClientWorld {
                     renderX: e.x,
                     renderY: e.y,
                     templateId: e.templateId,
+                    displayName: e.displayName,
                 });
             }
         }

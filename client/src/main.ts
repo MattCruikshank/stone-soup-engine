@@ -1,4 +1,4 @@
-import { Assets, Texture } from 'pixi.js';
+import { Assets } from 'pixi.js';
 import { createApp } from './render/renderer';
 import { createFallbackTilemap, createSpriteTilemap } from './render/tilemap';
 import { updateEntityGraphics, setPlayerTexture } from './render/entities';
@@ -13,6 +13,7 @@ import {
 } from './net/protocol';
 import { ClientWorld } from './game/world';
 import { setupInput } from './input/input';
+import { showLoginScreen } from './ui/LoginScreen';
 
 const ASSET_BASE = '/assets';
 
@@ -20,27 +21,26 @@ async function loadGameConfig(): Promise<{ background?: string; player?: string 
     try {
         const res = await fetch(`${ASSET_BASE}/resources/default.json`);
         if (res.ok) return res.json();
-    } catch {
-        // Config not available, use defaults
-    }
+    } catch { }
     return {};
 }
 
 async function main() {
+    // Show login screen first
+    const auth = await showLoginScreen();
+    console.log('Logged in as:', auth.displayName, 'namespace:', auth.namespace);
+
     const app = await createApp();
 
     // Load game config
     const config = await loadGameConfig();
-    console.log('Game config:', config);
 
     // Load background
     if (config.background) {
         try {
             const bgTexture = await Assets.load(`${ASSET_BASE}/sprites/${config.background}`);
-            const tilemap = createSpriteTilemap(bgTexture);
-            app.stage.addChild(tilemap);
-        } catch (e) {
-            console.warn('Failed to load background sprite, using fallback:', e);
+            app.stage.addChild(createSpriteTilemap(bgTexture));
+        } catch {
             app.stage.addChild(createFallbackTilemap());
         }
     } else {
@@ -52,17 +52,14 @@ async function main() {
         try {
             const playerTex = await Assets.load(`${ASSET_BASE}/sprites/${config.player}`);
             setPlayerTexture(playerTex);
-            console.log('Player sprite loaded:', config.player);
-        } catch (e) {
-            console.warn('Failed to load player sprite, using fallback:', e);
-        }
+        } catch { }
     }
 
-    // Connect to server
+    // Connect to server with auth token
     const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsHost = window.location.hostname;
     const wsPort = 5000;
-    const wsUrl = `${wsProto}://${wsHost}:${wsPort}/ws`;
+    const wsUrl = `${wsProto}://${wsHost}:${wsPort}/ws?token=${encodeURIComponent(auth.token)}`;
     const ws = connect(wsUrl);
 
     const world = new ClientWorld();
@@ -72,7 +69,7 @@ async function main() {
             case MSG_WELCOME: {
                 const welcome = parseWelcome(payload);
                 world.localPlayerId = welcome.playerId;
-                console.log('Welcome! Player ID:', welcome.playerId);
+                console.log('Welcome! Player ID:', welcome.playerId, 'as', welcome.displayName);
                 break;
             }
             case MSG_GAME_STATE: {
@@ -95,7 +92,6 @@ async function main() {
         world.interpolate(dt);
         updateEntityGraphics(app.stage, world);
 
-        // Camera follow
         const local = world.entities.get(world.localPlayerId);
         if (local) {
             app.stage.x = app.screen.width / 2 - local.renderX;

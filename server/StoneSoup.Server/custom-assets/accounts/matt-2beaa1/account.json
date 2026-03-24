@@ -1,0 +1,9 @@
+{
+  "display_name": "Matt",
+  "created": "2026-03-24",
+  "auth": {
+    "password_hash": "argon2id$v=19$m=65536,t=3,p=4$b0UiCCIfAV\u002Bt3WiEYe6ZTw==$C7FZcMdX2uHRlBWaWB63ZbI0l3U1GgK0s95fL/2BIe0=",
+    "public_key": null
+  },
+  "profile": null
+}

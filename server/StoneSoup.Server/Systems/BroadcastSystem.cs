@@ -20,10 +20,10 @@ public class BroadcastSystem
     {
         var entities = new List<EntityStateMsg>();
 
-        var query = new QueryDescription().WithAll<Position, TemplateRef>();
-        _world.Query(in query, (Entity entity, ref Position pos, ref TemplateRef tmpl) =>
+        var query = new QueryDescription().WithAll<Position, TemplateRef, PlayerIdentity>();
+        _world.Query(in query, (Entity entity, ref Position pos, ref TemplateRef tmpl, ref PlayerIdentity identity) =>
         {
-            entities.Add(new EntityStateMsg(entity.Id, pos.X, pos.Y, tmpl.TemplateId));
+            entities.Add(new EntityStateMsg(entity.Id, pos.X, pos.Y, tmpl.TemplateId, identity.DisplayName));
         });
 
         var msg = new GameStateMsg(tick, entities.ToArray());

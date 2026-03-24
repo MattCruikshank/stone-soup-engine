@@ -17,7 +17,7 @@ public class SessionManager
         _world = world;
     }
 
-    public Entity OnConnect(string connectionId, WebSocket socket)
+    public Entity OnConnect(string connectionId, WebSocket socket, string playerNamespace, string displayName)
     {
         var spawnX = 100f + (float)(_rng.NextDouble() * 1400);
         var spawnY = 100f + (float)(_rng.NextDouble() * 1400);
@@ -29,6 +29,7 @@ public class SessionManager
                 new Position { X = spawnX, Y = spawnY },
                 new Velocity { Dx = 0, Dy = 0 },
                 new PlayerConnection { ConnectionId = connectionId },
+                new PlayerIdentity { Namespace = playerNamespace, DisplayName = displayName },
                 new TemplateRef { TemplateId = "player" }
             );
         }
@@ -36,7 +37,7 @@ public class SessionManager
         _sessions[connectionId] = (entity, socket);
 
         // Send Welcome to the new player
-        var welcome = MessageEnvelope.Encode(MessageType.Welcome, new WelcomeMsg(entity.Id));
+        var welcome = MessageEnvelope.Encode(MessageType.Welcome, new WelcomeMsg(entity.Id, displayName));
         _ = SendAsync(socket, welcome);
 
         // Broadcast PlayerJoined to others

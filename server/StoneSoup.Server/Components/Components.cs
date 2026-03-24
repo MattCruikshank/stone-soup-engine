@@ -27,3 +27,9 @@ public struct TemplateRef
 {
     public string TemplateId;
 }
+
+public struct PlayerIdentity
+{
+    public string Namespace;
+    public string DisplayName;
+}

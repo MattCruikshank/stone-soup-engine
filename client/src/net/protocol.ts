@@ -26,6 +26,7 @@ export function decodeMessage(data: Uint8Array): { type: number; payload: unknow
 // Server message payload types
 export interface WelcomePayload {
     playerId: number;
+    displayName: string;
 }
 
 export interface EntityState {
@@ -33,6 +34,7 @@ export interface EntityState {
     x: number;
     y: number;
     templateId: string;
+    displayName: string;
 }
 
 export interface GameStatePayload {
@@ -42,8 +44,8 @@ export interface GameStatePayload {
 
 // Parse MessagePack arrays into typed objects
 export function parseWelcome(payload: unknown): WelcomePayload {
-    const arr = payload as [number];
-    return { playerId: arr[0] };
+    const arr = payload as [number, string];
+    return { playerId: arr[0], displayName: arr[1] };
 }
 
 export function parseGameState(payload: unknown): GameStatePayload {
@@ -51,8 +53,8 @@ export function parseGameState(payload: unknown): GameStatePayload {
     return {
         tick: arr[0],
         entities: (arr[1] ?? []).map((e) => {
-            const ea = e as [number, number, number, string];
-            return { entityId: ea[0], x: ea[1], y: ea[2], templateId: ea[3] };
+            const ea = e as [number, number, number, string, string];
+            return { entityId: ea[0], x: ea[1], y: ea[2], templateId: ea[3], displayName: ea[4] };
         }),
     };
 }

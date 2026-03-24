@@ -18,14 +18,15 @@ public static class MessageType
 public record struct MoveToTargetMsg([property: Key(0)] float X, [property: Key(1)] float Y);
 
 [MessagePackObject]
-public record struct WelcomeMsg([property: Key(0)] int PlayerId);
+public record struct WelcomeMsg([property: Key(0)] int PlayerId, [property: Key(1)] string DisplayName);
 
 [MessagePackObject]
 public record struct EntityStateMsg(
     [property: Key(0)] int EntityId,
     [property: Key(1)] float X,
     [property: Key(2)] float Y,
-    [property: Key(3)] string TemplateId);
+    [property: Key(3)] string TemplateId,
+    [property: Key(4)] string DisplayName);
 
 [MessagePackObject]
 public record struct GameStateMsg(

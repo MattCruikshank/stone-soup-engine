@@ -25,6 +25,10 @@ var assetRoot = Path.Combine(builder.Environment.ContentRootPath, "custom-assets
 var assetService = new AssetService(assetRoot);
 builder.Services.AddSingleton(assetService);
 
+// Auth service
+var authService = new AuthService(assetRoot);
+builder.Services.AddSingleton(authService);
+
 // CORS for editor
 builder.Services.AddCors(options =>
 {
@@ -57,7 +61,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
-app.Map("/ws", async (HttpContext context, SessionManager sessionManager, ConcurrentQueue<(string, byte[], int)> queue) =>
+app.Map("/ws", async (HttpContext context, SessionManager sessionManager, AuthService auth, ConcurrentQueue<(string, byte[], int)> queue) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
@@ -65,11 +69,22 @@ app.Map("/ws", async (HttpContext context, SessionManager sessionManager, Concur
         return;
     }
 
+    // Validate auth token from query string
+    var token = context.Request.Query["token"].FirstOrDefault();
+    var identity = auth.ValidateToken(token);
+    if (identity == null)
+    {
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("Invalid or missing auth token");
+        return;
+    }
+
     var ws = await context.WebSockets.AcceptWebSocketAsync();
     var connectionId = Guid.NewGuid().ToString();
 
-    var entity = sessionManager.OnConnect(connectionId, ws);
-    app.Logger.LogInformation("Player connected: {ConnectionId} -> Entity {EntityId}", connectionId, entity.Id);
+    var entity = sessionManager.OnConnect(connectionId, ws, identity.Value.Namespace, identity.Value.DisplayName);
+    app.Logger.LogInformation("Player {DisplayName} connected: {ConnectionId} -> Entity {EntityId}",
+        identity.Value.DisplayName, connectionId, entity.Id);
 
     try
     {
@@ -78,13 +93,38 @@ app.Map("/ws", async (HttpContext context, SessionManager sessionManager, Concur
     finally
     {
         sessionManager.OnDisconnect(connectionId);
-        app.Logger.LogInformation("Player disconnected: {ConnectionId}", connectionId);
+        auth.RemoveToken(token!);
+        app.Logger.LogInformation("Player {DisplayName} disconnected: {ConnectionId}",
+            identity.Value.DisplayName, connectionId);
 
         if (ws.State == WebSocketState.Open)
         {
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Goodbye", CancellationToken.None);
         }
     }
+});
+
+// Auth API
+app.MapPost("/api/auth/register", async (HttpRequest request, AuthService auth) =>
+{
+    var body = await request.ReadFromJsonAsync<AuthRequest>();
+    if (body == null) return Results.BadRequest("Invalid request body");
+
+    var result = await auth.Register(body.DisplayName, body.Password);
+    if (!result.Success) return Results.BadRequest(new { error = result.Error });
+
+    return Results.Ok(new { @namespace = result.Namespace, token = result.Token });
+});
+
+app.MapPost("/api/auth/login", async (HttpRequest request, AuthService auth) =>
+{
+    var body = await request.ReadFromJsonAsync<AuthRequest>();
+    if (body == null) return Results.BadRequest("Invalid request body");
+
+    var result = await auth.Login(body.DisplayName, body.Password);
+    if (!result.Success) return Results.Json(new { error = result.Error }, statusCode: 401);
+
+    return Results.Ok(new { @namespace = result.Namespace, token = result.Token });
 });
 
 // Asset API
@@ -114,3 +154,5 @@ app.MapDelete("/api/assets/{**path}", (string path, AssetService assets) =>
 });
 
 app.Run("http://0.0.0.0:5000");
+
+record AuthRequest(string DisplayName, string Password);
