@@ -36,14 +36,15 @@ public class MovementSystem
                 return;
             }
 
-            // Normalize and apply speed
+            // Normalize and apply speed, clamping to not overshoot
+            var stepDist = MathF.Min(MoveSpeed * deltaTime, dist);
             var nx = dx / dist;
             var ny = dy / dist;
             vel.Dx = nx * MoveSpeed;
             vel.Dy = ny * MoveSpeed;
 
-            pos.X += vel.Dx * deltaTime;
-            pos.Y += vel.Dy * deltaTime;
+            pos.X += nx * stepDist;
+            pos.Y += ny * stepDist;
         });
 
         // Remove MoveTarget from arrived entities (can't modify archetype during query)

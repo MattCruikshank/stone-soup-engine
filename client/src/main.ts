@@ -50,14 +50,21 @@ async function main() {
         }
     });
 
-    // Setup click-to-move input
-    setupInput(app.canvas as HTMLCanvasElement, ws);
+    // Setup click-to-move input (needs stage ref for screen->world conversion)
+    setupInput(app.canvas as HTMLCanvasElement, ws, app.stage);
 
     // Render loop
     app.ticker.add((ticker) => {
         const dt = ticker.deltaMS / 1000;
         world.interpolate(dt);
         updateEntityGraphics(app.stage, world);
+
+        // Camera follow: center stage on local player
+        const local = world.entities.get(world.localPlayerId);
+        if (local) {
+            app.stage.x = app.screen.width / 2 - local.renderX;
+            app.stage.y = app.screen.height / 2 - local.renderY;
+        }
     });
 }
 
