@@ -3,9 +3,10 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Kill any previous run
-pkill -f "dotnet.*StoneSoup.Server" 2>/dev/null || true
-pkill -f "vite.*stone-soup" 2>/dev/null || true
+# Kill any previous run (by port)
+for port in 5000 5173 5174; do
+    fuser -k $port/tcp 2>/dev/null || true
+done
 sleep 0.5
 
 cleanup() {

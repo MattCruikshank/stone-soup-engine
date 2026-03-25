@@ -1,5 +1,4 @@
 export interface LoginResult {
-    token: string;
     namespace: string;
     displayName: string;
 }
@@ -144,7 +143,6 @@ export function showLoginScreen(): Promise<LoginResult> {
                 // Success — remove overlay and resolve
                 overlay.remove();
                 resolve({
-                    token: data.token,
                     namespace: data.namespace,
                     displayName,
                 });

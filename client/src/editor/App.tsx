@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     DockviewReact,
     DockviewReadyEvent,
@@ -8,6 +8,8 @@ import 'dockview/dist/styles/dockview.css';
 import { FileTreePanel } from './panels/FileTreePanel';
 import { SpriteEditorPanel } from './panels/SpriteEditorPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
+import { EditorLoginScreen } from './components/EditorLoginScreen';
+import { checkSession, logout, type Session } from './services/authApi';
 
 const components: Record<string, React.FC<IDockviewPanelProps>> = {
     'file-tree': FileTreePanel,
@@ -16,6 +18,21 @@ const components: Record<string, React.FC<IDockviewPanelProps>> = {
 };
 
 export const App: React.FC = () => {
+    const [session, setSession] = useState<Session | null>(null);
+    const [checking, setChecking] = useState(true);
+
+    useEffect(() => {
+        checkSession().then(s => {
+            setSession(s);
+            setChecking(false);
+        });
+    }, []);
+
+    const handleLogout = useCallback(async () => {
+        await logout();
+        setSession(null);
+    }, []);
+
     const onReady = useCallback((event: DockviewReadyEvent) => {
         const { api } = event;
 
@@ -50,11 +67,51 @@ export const App: React.FC = () => {
         });
     }, []);
 
+    if (checking) return null;
+
+    if (!session) {
+        return <EditorLoginScreen onLogin={setSession} />;
+    }
+
     return (
-        <DockviewReact
-            className="dockview-theme-dark"
-            onReady={onReady}
-            components={components}
-        />
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={toolbarStyle}>
+                <span style={{ color: '#8892b0', fontSize: 13 }}>
+                    Stone Soup Editor
+                </span>
+                <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ color: '#ccd6f6', fontSize: 13 }}>{session.displayName}</span>
+                    <button onClick={handleLogout} style={logoutBtnStyle}>
+                        Logout
+                    </button>
+                </span>
+            </div>
+            <div style={{ flex: 1 }}>
+                <DockviewReact
+                    className="dockview-theme-dark"
+                    onReady={onReady}
+                    components={components}
+                />
+            </div>
+        </div>
     );
+};
+
+const toolbarStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '4px 12px',
+    background: '#1e1e2e',
+    borderBottom: '1px solid #333',
+    flexShrink: 0,
+};
+
+const logoutBtnStyle: React.CSSProperties = {
+    padding: '3px 10px',
+    background: '#0f3460',
+    color: '#ccd6f6',
+    border: 'none',
+    borderRadius: 4,
+    fontSize: 12,
+    cursor: 'pointer',
 };

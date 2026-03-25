@@ -36,7 +36,8 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -61,6 +62,24 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// Helper: set auth cookie on response
+void SetAuthCookie(HttpResponse response, string token)
+{
+    response.Cookies.Append("ss_token", token, new CookieOptions
+    {
+        HttpOnly = true,
+        SameSite = SameSiteMode.Lax,
+        Path = "/",
+    });
+}
+
+// Helper: get session from cookie
+(string Namespace, string DisplayName)? GetSession(HttpContext ctx, AuthService auth)
+{
+    var token = ctx.Request.Cookies["ss_token"];
+    return token != null ? auth.ValidateToken(token) : null;
+}
+
 app.Map("/ws", async (HttpContext context, SessionManager sessionManager, AuthService auth, ConcurrentQueue<(string, byte[], int)> queue) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -69,8 +88,9 @@ app.Map("/ws", async (HttpContext context, SessionManager sessionManager, AuthSe
         return;
     }
 
-    // Validate auth token from query string
-    var token = context.Request.Query["token"].FirstOrDefault();
+    // Validate auth token from cookie first, then query string fallback
+    var token = context.Request.Cookies["ss_token"]
+             ?? context.Request.Query["token"].FirstOrDefault();
     var identity = auth.ValidateToken(token);
     if (identity == null)
     {
@@ -93,7 +113,6 @@ app.Map("/ws", async (HttpContext context, SessionManager sessionManager, AuthSe
     finally
     {
         sessionManager.OnDisconnect(connectionId);
-        auth.RemoveToken(token!);
         app.Logger.LogInformation("Player {DisplayName} disconnected: {ConnectionId}",
             identity.Value.DisplayName, connectionId);
 
@@ -105,26 +124,45 @@ app.Map("/ws", async (HttpContext context, SessionManager sessionManager, AuthSe
 });
 
 // Auth API
-app.MapPost("/api/auth/register", async (HttpRequest request, AuthService auth) =>
+app.MapPost("/api/auth/register", async (HttpContext context, AuthService auth) =>
 {
-    var body = await request.ReadFromJsonAsync<AuthRequest>();
+    var body = await context.Request.ReadFromJsonAsync<AuthRequest>();
     if (body == null) return Results.BadRequest("Invalid request body");
 
     var result = await auth.Register(body.DisplayName, body.Password);
     if (!result.Success) return Results.BadRequest(new { error = result.Error });
 
-    return Results.Ok(new { @namespace = result.Namespace, token = result.Token });
+    SetAuthCookie(context.Response, result.Token!);
+    return Results.Ok(new { @namespace = result.Namespace, displayName = body.DisplayName });
 });
 
-app.MapPost("/api/auth/login", async (HttpRequest request, AuthService auth) =>
+app.MapPost("/api/auth/login", async (HttpContext context, AuthService auth) =>
 {
-    var body = await request.ReadFromJsonAsync<AuthRequest>();
+    var body = await context.Request.ReadFromJsonAsync<AuthRequest>();
     if (body == null) return Results.BadRequest("Invalid request body");
 
     var result = await auth.Login(body.DisplayName, body.Password);
     if (!result.Success) return Results.Json(new { error = result.Error }, statusCode: 401);
 
-    return Results.Ok(new { @namespace = result.Namespace, token = result.Token });
+    SetAuthCookie(context.Response, result.Token!);
+    return Results.Ok(new { @namespace = result.Namespace, displayName = body.DisplayName });
+});
+
+app.MapGet("/api/auth/me", (HttpContext context, AuthService auth) =>
+{
+    var session = GetSession(context, auth);
+    if (session == null) return Results.Json(new { error = "Not authenticated" }, statusCode: 401);
+
+    return Results.Ok(new { @namespace = session.Value.Namespace, displayName = session.Value.DisplayName });
+});
+
+app.MapPost("/api/auth/logout", (HttpContext context, AuthService auth) =>
+{
+    var token = context.Request.Cookies["ss_token"];
+    if (token != null) auth.RemoveToken(token);
+
+    context.Response.Cookies.Delete("ss_token", new CookieOptions { Path = "/" });
+    return Results.Ok();
 });
 
 // Asset API
@@ -140,16 +178,20 @@ app.MapGet("/api/assets/{**path}", (string path, AssetService assets) =>
     return Results.File(data, AssetService.GetContentType(path));
 });
 
-app.MapPut("/api/assets/{**path}", async (string path, HttpRequest request, AssetService assets) =>
+app.MapPut("/api/assets/{**path}", async (HttpContext context, string path, AssetService assets, AuthService auth) =>
 {
+    if (GetSession(context, auth) == null) return Results.Json(new { error = "Not authenticated" }, statusCode: 401);
+
     using var ms = new MemoryStream();
-    await request.Body.CopyToAsync(ms);
+    await context.Request.Body.CopyToAsync(ms);
     var success = assets.WriteFile(path, ms.ToArray());
     return success ? Results.Ok() : Results.BadRequest("Invalid path");
 });
 
-app.MapDelete("/api/assets/{**path}", (string path, AssetService assets) =>
+app.MapDelete("/api/assets/{**path}", (HttpContext context, string path, AssetService assets, AuthService auth) =>
 {
+    if (GetSession(context, auth) == null) return Results.Json(new { error = "Not authenticated" }, statusCode: 401);
+
     return assets.DeleteFile(path) ? Results.Ok() : Results.NotFound();
 });
 

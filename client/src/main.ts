@@ -55,11 +55,9 @@ async function main() {
         } catch { }
     }
 
-    // Connect to server with auth token
+    // Connect to server — auth cookie is sent automatically
     const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsHost = window.location.hostname;
-    const wsPort = 5000;
-    const wsUrl = `${wsProto}://${wsHost}:${wsPort}/ws?token=${encodeURIComponent(auth.token)}`;
+    const wsUrl = `${wsProto}://${window.location.host}/ws`;
     const ws = connect(wsUrl);
 
     const world = new ClientWorld();
