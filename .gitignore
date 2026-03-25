@@ -20,3 +20,6 @@ client/dist/
 Thumbs.db
 editor/dist/
 reference/
+
+# Runtime
+server.log
