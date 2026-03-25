@@ -55,9 +55,11 @@ async function main() {
         } catch { }
     }
 
-    // Connect to server — auth cookie is sent automatically
+    // Connect directly to game server port — Vite's WS proxy doesn't work
+    // through the exe.dev HTTPS reverse proxy. Cookie is shared across ports
+    // on the same hostname.
     const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${wsProto}://${window.location.host}/ws`;
+    const wsUrl = `${wsProto}://${window.location.hostname}:5000/ws`;
     const ws = connect(wsUrl);
 
     const world = new ClientWorld();

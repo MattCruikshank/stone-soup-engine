@@ -17,10 +17,13 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
+LOG="$SCRIPT_DIR/server.log"
+> "$LOG"
+
 # Start C# server in background
-echo "Starting server on :5000..."
+echo "Starting server on :5000... (logging to server.log)"
 cd "$SCRIPT_DIR/server/StoneSoup.Server"
-dotnet run &
+dotnet run 2>&1 | tee "$LOG" &
 SERVER_PID=$!
 
 # Wait a moment for the server to start

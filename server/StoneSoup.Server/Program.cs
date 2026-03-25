@@ -68,6 +68,7 @@ void SetAuthCookie(HttpResponse response, string token)
     response.Cookies.Append("ss_token", token, new CookieOptions
     {
         HttpOnly = true,
+        Secure = true,
         SameSite = SameSiteMode.Lax,
         Path = "/",
     });
