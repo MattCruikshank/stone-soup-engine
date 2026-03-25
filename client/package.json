@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/bundle-piskel.js && vite",
-    "build": "node scripts/bundle-piskel.js && tsc && vite build"
+    "dev": "node scripts/bundle-piskel.js && node scripts/bundle-tilemap.js && vite",
+    "build": "node scripts/bundle-piskel.js && node scripts/bundle-tilemap.js && tsc && vite build"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",

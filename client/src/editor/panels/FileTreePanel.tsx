@@ -121,10 +121,19 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
             return;
         }
 
+        const isTilemap = lower.endsWith('.tilemap.json');
         const isImage = IMAGE_EXTS.some(ext => lower.endsWith(ext));
-        const isText = TEXT_EXTS.some(ext => lower.endsWith(ext));
+        const isText = !isTilemap && TEXT_EXTS.some(ext => lower.endsWith(ext));
 
-        if (isImage) {
+        if (isTilemap) {
+            dockviewApi.addPanel({
+                id: panelId,
+                component: 'tilemap-editor',
+                title: node.name,
+                params: { filePath: node.path },
+                position: getEditorPosition(),
+            });
+        } else if (isImage) {
             dockviewApi.addPanel({
                 id: panelId,
                 component: 'sprite-editor',
@@ -175,6 +184,23 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
         });
     }, [dockviewApi, getEditorPosition]);
 
+    const handleNewTilemap = useCallback(() => {
+        const name = prompt('Tilemap name (e.g. forest-chunk):');
+        if (!name) return;
+        const fileName = name.endsWith('.tilemap.json') ? name : `${name}.tilemap.json`;
+
+        if (!dockviewApi) return;
+
+        const panelId = `tilemap-new-${fileName}-${Date.now()}`;
+        dockviewApi.addPanel({
+            id: panelId,
+            component: 'tilemap-editor',
+            title: fileName,
+            params: { filePath: null, fileName },
+            position: getEditorPosition(),
+        });
+    }, [dockviewApi, getEditorPosition]);
+
     const handleNewJson = useCallback(() => {
         const name = prompt('File name (e.g. monsters.json):');
         if (!name) return;
@@ -220,6 +246,22 @@ export const FileTreePanel: React.FC<IDockviewPanelProps> = (props) => {
                     }}
                 >
                     New Sprite
+                </button>
+                <button
+                    onClick={handleNewTilemap}
+                    style={{
+                        flex: 1,
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        background: '#f9e2af',
+                        color: '#1e1e2e',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                    }}
+                >
+                    New Tilemap
                 </button>
                 <button
                     onClick={handleNewJson}

@@ -8,6 +8,7 @@ import 'dockview/dist/styles/dockview.css';
 import { FileTreePanel } from './panels/FileTreePanel';
 import { SpriteEditorPanel } from './panels/SpriteEditorPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
+import { TilemapEditorPanel } from './panels/TilemapEditorPanel';
 import { EditorLoginScreen } from './components/EditorLoginScreen';
 import { checkSession, logout, type Session } from './services/authApi';
 
@@ -15,6 +16,7 @@ const components: Record<string, React.FC<IDockviewPanelProps>> = {
     'file-tree': FileTreePanel,
     'sprite-editor': SpriteEditorPanel,
     'text-editor': TextEditorPanel,
+    'tilemap-editor': TilemapEditorPanel,
 };
 
 export const App: React.FC = () => {
