@@ -1,0 +1,38 @@
+{
+  "tileSets": {},
+  "maps": {
+    "Map_1": {
+      "layers": [
+        {
+          "tiles": {},
+          "visible": true,
+          "name": "bottom",
+          "animatedTiles": {},
+          "opacity": 1
+        },
+        {
+          "tiles": {},
+          "visible": true,
+          "name": "middle",
+          "animatedTiles": {},
+          "opacity": 1
+        },
+        {
+          "tiles": {},
+          "visible": true,
+          "name": "top",
+          "animatedTiles": {},
+          "opacity": 1
+        }
+      ],
+      "name": "Map 1",
+      "mapWidth": 20,
+      "mapHeight": 15,
+      "tileSize": 32,
+      "width": 320,
+      "height": 240,
+      "gridColor": "#00FFFF"
+    }
+  },
+  "activeMap": "Map_1"
+}
